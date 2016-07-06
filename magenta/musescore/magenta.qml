@@ -6,14 +6,48 @@ MuseScore {
 
       function createNoteSequence() {
         var noteSequence = {
-          timeSignatures: [],
-          keySignatures: [],
-          tempos: [],
+          timeSignatures: [
+            {
+              time: 0,
+              numerator: 4,
+              denominator: 4,
+            }
+          ],
+          keySignatures: [
+            {
+              time: 0,
+              key: 'C',
+              mode: 'MAJOR',
+            }
+          ],
+          tempos: [
+            {
+              time: 0,
+              bpm: 120,
+            }
+          ],
           notes: [],
           totalTime: curScore.duration,
           sourceType: 'SCORE',
           ticksPerBeat: 220,
+          partInfos: [],
         };
+
+        var midiParts = {};
+
+        for (var i = 0; i < curScore.parts.length; i++) {
+          var part = curScore.parts[i];
+          if (part) {
+            noteSequence.partInfos.push({
+              part: i,
+              name: part.partName,
+            });
+            midiParts[i] = {
+              midiChannel: part.midiChannel,
+              midiProgram: part.midiProgram,
+            }
+          }
+        }
 
         var cursor = curScore.newCursor();
         var startStaff;
@@ -75,9 +109,9 @@ MuseScore {
                   nsNote.velocity = 127;
                   nsNote.startTime = cursor.time / 1000;
                   nsNote.endTime = nsNote.startTime + durationSeconds;
-                  nsNote.instrument = 0;
-                  nsNote.program = 1;
                   nsNote.part = (staff * 4) + voice;
+                  nsNote.instrument = midiParts[nsNote.part].midiChannel;
+                  nsNote.program = midiParts[nsNote.part].midiProgram;
                   noteSequence.notes.push(nsNote);
                 }
               }

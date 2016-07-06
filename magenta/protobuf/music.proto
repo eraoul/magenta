@@ -52,7 +52,7 @@ message NoteSequence {
   repeated ControlChange control_changes = 11;
 
   // Score-related information about parts.
-  repeated PartInfo part_info = 12;
+  repeated PartInfo part_infos = 12;
 
   // What kind of source this file came from.
   SourceType source_type = 13;

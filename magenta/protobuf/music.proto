@@ -55,7 +55,7 @@ message NoteSequence {
   repeated PartInfo part_infos = 12;
 
   // What kind of source this file came from.
-  SourceType source_type = 13;
+  SourceInfo source_info = 13;
 
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
@@ -156,12 +156,23 @@ message NoteSequence {
     string name = 2;
   }
 
-  // The type of source file used to create this NoteSequence.
-  enum SourceType {
-    UNKNOWN_SOURCE_TYPE = 0;
-    // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
-    // We can expect perfect timing alignment with measures and complete
-    // TimeSignature and KeySignature information.
-    SCORE = 1;
+  // Information about how this file was generated.
+  message SourceInfo {
+    // The type of source file used to create this NoteSequence.
+    enum SourceType {
+      UNKNOWN_SOURCE_TYPE = 0;
+      // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
+      // We can expect perfect timing alignment with measures and complete
+      // TimeSignature and KeySignature information.
+      SCORE = 1;
+    }
+
+    // Type of source.
+    SourceType source_type = 1;
+
+    // Free form name of source (e.g., magenta.lib.midi_io).
+    // Intended to be used for debugging by humans, not any sort of automated
+    // parsing.
+    string source_name = 2;
   }
 }

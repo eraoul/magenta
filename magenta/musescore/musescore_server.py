@@ -19,7 +19,7 @@ import BaseHTTPServer
 import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
-from magenta.protobuf import music_pb2
+from magenta.protobuf import autofill_pb2
 from magenta.lib import midi_io
 
 FLAGS = tf.app.flags.FLAGS
@@ -30,9 +30,10 @@ class MuseScoreHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     print 'got post'
     json = self.rfile.read(int(self.headers['content-length']))
     print json
-    message = json_format.Parse(json, music_pb2.NoteSequence())
+    message = json_format.Parse(json, autofill_pb2.AutoFillRequest())
     print text_format.MessageToString(message)
-    midi_io.sequence_proto_to_midi_file(message, '/tmp/musescore.midi')
+    midi_io.sequence_proto_to_midi_file(
+        message.note_sequence, '/tmp/musescore.midi')
 
 
     self.send_response(200)

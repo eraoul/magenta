@@ -51,3 +51,20 @@ cc_proto_library(
    protoc = "@protobuf//:protoc",
    default_runtime = "@protobuf//:protobuf",
 )
+
+py_proto_library(
+    name = "autofill_py_pb2",
+    srcs = ["autofill.proto"],
+    deps = [":music_py_pb2"],
+    srcs_version = "PY2AND3",
+    protoc = "@protobuf//:protoc",
+    default_runtime = "@protobuf//:protobuf_python",
+)
+
+cc_proto_library(
+   name = "autofill_proto",
+   srcs = ["autofill.proto"],
+    deps = [":music_proto"],
+   protoc = "@protobuf//:protoc",
+   default_runtime = "@protobuf//:protobuf",
+)

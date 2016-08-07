@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package tensorflow.magenta;
+
+import "magenta/protobuf/music.proto";
+
+
+message ChordPitch {
+  int32 pitch = 1;
+  // Start and end time in seconds.
+  double start_time = 3;
+  double end_time = 4;
+  // Score-relative chord length. E.g. a quarter note is 1/4.
+  int32 numerator = 5;
+  int32 denominator = 6;
+  // The pretty_midi instrument index, which in py_midi is the channel.
+  int32 instrument = 7;
+  // MIDI program is the sound playing (e.g. harpsichord).
+  int32 program = 8;
+}
+
+// This message represents a musical chord as found in a lead sheet. It has a duration but does not attempt to
+// represent individual MIDI notes; rather, it describes the tonal quality of the chord.
+message Chord {
+  // Unique id.
+  string id = 1;
+
+  // TODO: root
+  ChordRoot root = 2;
+  // TODO: chord quality
+  ChordQuality quality = 3;
+
+  // Start and end time in seconds.
+  double start_time = 4;
+  double end_time = 5;
+  // Score-relative chord length. E.g. a quarter note is 1/4.
+  int32 numerator = 6;
+  int32 denominator = 7;
+  // The pretty_midi instrument index, which in py_midi is the channel.
+  int32 instrument = 8;
+  // MIDI program is the sound playing (e.g. harpsichord).
+  int32 program = 9;
+}

@@ -5,12 +5,18 @@ This interface allows you to connect to a model
 and synthesizer. These can be either "hard" or "soft" components.
 
 Note that you can only interface with a trained models that have a
-[SequenceGenerator](/magenta/lib/sequence_generator.py)
+[SequenceGenerator](/magenta/music/sequence_generator.py)
  defined for them.
 
 <p align="center">
   <img src="midi.png" alt="Sequence Diagram for the MIDI interface"/>
 </p>
+
+## Example Demo
+
+The simplest way to try this interface is using the
+[AI Jam demo](/demos/ai-jam-js). The instructions below provide a more basic
+customizable interaction that is more difficult to set up.
 
 ## Installing Dependencies
 
@@ -21,15 +27,13 @@ and Ubuntu Linux.
 For users of Macintosh OS X, the instructions below assume that you
 have installed [Homebrew](http://brew.sh).
 
-### Install PortMidi
+First, [install Magenta](/README.md). The rest of this document assumes you have
+installed the Magenta pip package. Before continuing, make sure your `magenta`
+conda environment is active:
 
-The interface uses a python library called [mido](http://mido.readthedocs.io) to
-interface your computer's MIDI hub. For it to work, you need to separately
-install a backend library it can use to connect to your system. The easiest to
-install is PortMidi, which can be done with the following commands.
-
-**Ubuntu:** `sudo apt-get install libportmidi-dev`<br />
-**Mac:** `brew install portmidi`
+```bash
+source activate magenta
+```
 
 ### Install QjackCtl (Ubuntu Only)
 
@@ -81,7 +85,7 @@ screen/tab. Launch FluidSynth with the recommended soundfont installed above
 using:
 
 ```bash
-$ fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
+fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
 ```
 
 In the QjackCtl GUI, click the "Connect" button. In the "Audio" tab, select your
@@ -96,76 +100,103 @@ If using a software synth, launch it. Launch FluidSynth with the
 recommended soundfont downloaded above using:
 
 ```bash
-$ fluidsynth /path/to/sf2
+fluidsynth /path/to/sf2
 ```
 
-## Launching  Interface
+## Launching the Interface
 
-After completing the installation and set up steps above, build the interface
-with:
-
-```bash
-$ bazel build //magenta/interfaces/midi:midi
-```
-
-Once built, have it list the the available MIDI ports:
+After completing the installation and set up steps above have the interface list
+the available MIDI ports:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi --list
+magenta_midi --list_ports
 ```
 
 You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
-port").
-
-You should have already trained a model with a
-[generator](/magenta/models/README.md#generators) defined for it
-(e.g., [Basic RNN](/magenta/models/basic_rnn/README.md),
-[Lookback RNN] (/magenta/models/lookback_rnn/README.md),
-[Attention RNN] (/magenta/models/attention_rnn/README.md), etc.).
-
-You can now start the interface with this command, supplying the same
-hparams you used when you trained the model:
+port"). Set the environment variables based on the ports you want to use. For
+example:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi \
-  --input_port=<controller port> \
-  --output_port=<synthesizer port> \
-  --generator_name=<generator name> \
-  --checkpoint=<training directory or checkpoint path> \
-  --hparams=<training hparams>
+CONTROLLER_PORT="VMPK Output"
+SYNTH_PORT="FluidSynth virtual port 1"
 ```
 
-Asssuming you trained the
-[Attention RNN](/magenta/models/attention_rnn/README.md) and are
-using VPMK and FluidSynth, your command would look like this:
+To use the midi interface, you must supply one or more trained model bundles
+(.mag files). You can either download them from the links on our model pages
+(e.g., [Melody RNN](/magenta/models/melody_rnn/README.md)) or create bundle
+files from your training checkpoints using the instructions on the model page.
+Once you're picked out the bundle files you wish to use, set the magenta_midi --help
+environment
+variable with a comma-separated list of paths to to the bundles. For example:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi \
+BUNDLE_PATHS=/path/to/bundle1.mag,/path/to/bundle2.mag
+```
+
+In summary, you should first define these variables:
+
+```bash
+CONTROLLER_PORT=<controller midi port name>
+SYNTH_PORT=<synth midi port name>
+BUNDLE_PATHS=<comma-separated paths to bundle files>
+```
+
+You may now start the interface with this command:
+
+```bash
+magenta_midi \
+  --input_port=${CONTROLLER_PORT} \
+  --output_port=${SYNTH_PORT} \
+  --bundle_files=${BUNDLE_PATHS}
+```
+
+There are many other options you can set to customize your interaction. To see
+a full list, you can enter:
+
+```bash
+magenta_midi --help
+```
+
+## Assigning Control Signals
+You can assign control change numbers to different "knobs" for controlling the
+interface in two ways.
+
+* Assign the values on the command line using the appropriate flags (e.g.,
+`--temperature_control_number=1`).
+* Assign the values after startup by dynamically associating control changes
+from your MIDI controller with different control signals. You can enter the UI
+for doing this assignment by including the `--learn_controls` flag on the
+command-line at launch.
+
+
+## Using the "Call and Response" Interaction
+
+"Call and response" is a type of interaction where one participant (you) produce
+a "call" phrase and the other participant (Magenta) produces a "response" phrase
+based upon that "call".
+
+When you start the interface, "call" phrase capture will begin immediately. You
+will hear a metronome ticking and the keys will now produce sounds through your
+audio output.
+
+When you would like to hear a response, you should stop playing and a wait a
+bar, at which point the response will be played. Once the response completes,
+call phrase capture will begin again, and the process repeats.
+
+If you used the `--end_call_control_number` flag, you can signal with that
+control number and a value of 127 to end the call phrase instead of waiting for
+a bar of silence. At the end of the current bar, a generated response will be
+played that is the same length as your call phrase. After the response
+completes, call phrase capture will begin again, and the process repeats.
+
+Assuming you're using the
+[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file
+and are using VPMK and FluidSynth, your command might look like this:
+
+```bash
+magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --generator_name=attention_rnn \
-  --checkpoint=/tmp/attention_rnn/logdir/run1/train \
-  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}"
+  --bundle_files=/tmp/attention_rnn.mag
 ```
-
-To initialize a capture session, you need to send the appropriate control change
-message from the controller. By default, this is done by setting the modulation
-wheel to its max value.
-
-You should immediately hear a metronome and the keys will now produce sounds
-through your audio output.
-
-When you have played your priming sequence, end the capture session by sending
-the appropriate control change message from the controller. By default, this is
-done by setting the modulation wheel back to 0.
-
-After a very short delay, you will hear the input sequence followed by the
-generated sequence. You can continue to switch between capture and generating
-states using the appropriate control (e.g., the modulation wheel).
-
-## Changing the Capture/Generate Toggle
-
-You can remap the control signals to use something other than the modulation
-wheel (e.g., physical pads on your controller). This is done by setting the
-`--start_capture_control_*` and `--stop_capture_control_*` flags appropriately.

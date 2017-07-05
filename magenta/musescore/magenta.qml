@@ -18,6 +18,8 @@ import QtQuick 2.0
 import MuseScore 1.0
 
 MuseScore {
+      version:  "1.0"
+      description: "This plugin connects to a Magenta server to generate music for the selected region"
       menuPath: "Plugins.Magenta"
 
       function keySignatureIdToMajorEnumString(id) {
@@ -58,6 +60,19 @@ MuseScore {
         }
       }
 
+      function getPartNumber(midiParts, track) {
+        console.log(midiParts);
+        //for (var i = 0; i < midiParts.length; i++) {
+        for (var i in midiParts) {
+          console.log("Part " + i)
+          var part = midiParts[i];
+          if (track >= part.startTrack && track < part.endTrack) {
+            return i;
+          }
+        }
+        console.error("Track " + track + " not found in midiParts");
+      }
+
       function createNoteSequence() {
         var noteSequence = {
           timeSignatures: [],
@@ -92,10 +107,14 @@ MuseScore {
             midiParts[i] = {
               midiChannel: part.midiChannel,
               midiProgram: part.midiProgram,
+              startTrack: part.startTrack,
+              endTrack: part.endTrack,
             }
+            console.log("Midi: part " + i + "(tracks " + part.startTrack + "-" + (part.endTrack-1)
+              + ") = " + part.partName + "  channel = " + part.midiChannel + " program = "
+              + part.midiProgram);
           }
         }
-
         // Find all time signatures.
         // TODO: Directly insert these into noteSequence once we can calculate
         // the time from the tick: https://musescore.org/en/node/117611
@@ -121,12 +140,14 @@ MuseScore {
         var cursor = curScore.newCursor();
         for (var staff = 0; staff < curScore.nstaves; staff++) {
           for (var voice = 0; voice < 4; voice++) {
-            cursor.rewind(0); // beginning of score
+            console.log("Staff " + staff + " voice " + voice);
+
             cursor.voice = voice;
             cursor.staffIdx = staff;
-
+            cursor.rewind(0); // beginning of score
 
             for (; cursor.segment; cursor.next()) {
+              console.log("Cursor at " + cursor.tick);
               // Extract any relevant time signatures
               while(timeSignatures.length &&
                   timeSignatures[0].tick <= cursor.tick) {
@@ -156,13 +177,13 @@ MuseScore {
                   mode: 'MAJOR',
                 });
               }
-
+              console.log("HERE");
               if (!cursor.element) {
                 continue;
               }
 
               var elem = cursor.element;
-
+              console.log("Element: " + elem.userName());
               if (elem.type == Element.CHORD) {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
@@ -179,7 +200,9 @@ MuseScore {
                   nsNote.velocity = 127;
                   nsNote.startTime = cursor.time / 1000.0;
                   nsNote.endTime = nsNote.startTime + durationSeconds;
-                  nsNote.part = (staff * 4) + voice;
+                  //nsNote.part = (staff * 4) + voice;
+                  track = (staff * 4) + voice;
+                  nsNote.part = getPartNumber(midiParts, track);
                   nsNote.instrument = midiParts[nsNote.part].midiChannel;
                   nsNote.program = midiParts[nsNote.part].midiProgram;
                   noteSequence.notes.push(nsNote);

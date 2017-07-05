@@ -146,6 +146,7 @@ MuseScore {
 
             for (; cursor.segment; cursor.next()) {
               console.log("Cursor at tick " + cursor.tick);
+              console.log("Tempo at cursor: " + cursor.tempo)
               // Extract any relevant time signatures
               while(timeSignatures.length &&
                   timeSignatures[0].tick <= cursor.tick) {

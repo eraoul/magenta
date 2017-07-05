@@ -177,7 +177,7 @@ MuseScore {
                   mode: 'MAJOR',
                 });
               }
-              console.log("HERE");
+
               if (!cursor.element) {
                 continue;
               }

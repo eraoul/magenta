@@ -55,16 +55,14 @@ MuseScore {
           case 7:
             return 'C_SHARP';
           default:
-            console.log('Unknown key signature: ' + id);
+            console.error('Unknown key signature: ' + id);
             Qt.quit();
         }
       }
 
+      // Returns the part # for a given midiParts dictionary and track #.
       function getPartNumber(midiParts, track) {
-        console.log(midiParts);
-        //for (var i = 0; i < midiParts.length; i++) {
         for (var i in midiParts) {
-          console.log("Part " + i)
           var part = midiParts[i];
           if (track >= part.startTrack && track < part.endTrack) {
             return i;
@@ -147,7 +145,7 @@ MuseScore {
             cursor.rewind(0); // beginning of score
 
             for (; cursor.segment; cursor.next()) {
-              console.log("Cursor at " + cursor.tick);
+              console.log("Cursor at tick " + cursor.tick);
               // Extract any relevant time signatures
               while(timeSignatures.length &&
                   timeSignatures[0].tick <= cursor.tick) {
@@ -183,7 +181,7 @@ MuseScore {
               }
 
               var elem = cursor.element;
-              console.log("Element: " + elem.userName());
+              console.log("Element: " + elem.userName() + " at time " + cursor.time);
               if (elem.type == Element.CHORD) {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
@@ -217,7 +215,7 @@ MuseScore {
 
       function createFillParameter() {
         var cursor = curScore.newCursor();
-        cursor.rewind(1);
+        cursor.rewind(1);  // Go to start of selection.
         if (!cursor.segment) { // no selection
           return {
             startTime: 0,
@@ -228,7 +226,7 @@ MuseScore {
         } else {
            var startTime = cursor.time / 1000.0;
            var firstPart = cursor.track;
-           cursor.rewind(2);
+           cursor.rewind(2);  // Go to end of selection.
            var endTime = cursor.time / 1000.0;
            // endTime could be 0 if the user selects the end of the track.
            if (endTime == 0) {

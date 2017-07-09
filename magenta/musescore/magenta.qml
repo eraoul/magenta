@@ -78,10 +78,10 @@ MuseScore {
           // Hard code this until the annotations bug is fixed:
           // https://musescore.org/en/node/115971
           tempos: [
-            {
-              time: 0,
-              bpm: 120,
-            }
+            // {
+            //   time: 0,
+            //   bpm: 120,
+            // }
           ],
           notes: [],
           totalTime: curScore.duration,
@@ -113,11 +113,34 @@ MuseScore {
               + part.midiProgram);
           }
         }
-        // Find all time signatures.
+        // Find all time signatures and tempo markings.
         // TODO: Directly insert these into noteSequence once we can calculate
         // the time from the tick: https://musescore.org/en/node/117611
         var timeSignatures = [];
+        var prevTime = 0;
+        var prevTick = 0;
+        var prevTempo = 2;  // Default to 2 (=120bpm) at start of score.
         for(var seg = curScore.firstSegment(); !!seg; seg = seg.next) {
+          console.log("Segment tick: " + seg.tick);
+          for (var i = 0; i < seg.annotations.length; i++) {
+            var annotation = seg.annotations[i];
+            if (annotation.type === Element.TEMPO_TEXT) {
+              console.log("\n\nGOT ONE\n\n");
+              var curBpm = 60 * annotation.tempo;
+              var curTime = prevTime + (seg.tick - prevTick) / (480 * prevTempo);
+              console.log("BPM: " + curBpm + " Tick: " + seg.tick + " Time: " + curTime);
+              noteSequence.tempos.push(
+                {
+                  time: curTime,
+                  qpm: curBpm,
+                });
+              prevTime = curTime;
+              prevTick = seg.tick;
+              prevTempo = annotation.tempo
+
+            }
+          }
+
           for (var track = 0; track < curScore.ntracks; ++track) {
             var elem = seg.elementAt(track);
             if (!elem) {

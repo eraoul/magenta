@@ -17,54 +17,49 @@
 
 package(
     default_visibility = ["//magenta:__subpackages__"],
+    features = ["-layering_check"],
 )
 
 load("@protobuf//:protobuf.bzl", "cc_proto_library")
 load("@protobuf//:protobuf.bzl", "py_proto_library")
 
+# Magenta public API.
+py_library(
+    name = "protobuf",
+    deps = [
+        ":generator_py_pb2",
+        ":music_py_pb2",
+    ],
+)
+
 py_proto_library(
     name = "music_py_pb2",
     srcs = ["music.proto"],
-    srcs_version = "PY2AND3",
-    protoc = "@protobuf//:protoc",
     default_runtime = "@protobuf//:protobuf_python",
+    protoc = "@protobuf//:protoc",
+    srcs_version = "PY2AND3",
 )
 
 cc_proto_library(
-   name = "music_proto",
-   srcs = ["music.proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
-)
-
-py_proto_library(
-    name = "score_py_pb2",
-    srcs = ["score.proto"],
-    srcs_version = "PY2AND3",
+    name = "music_proto",
+    srcs = ["music.proto"],
+    default_runtime = "@protobuf//:protobuf",
     protoc = "@protobuf//:protoc",
-    default_runtime = "@protobuf//:protobuf_python",
-)
-
-cc_proto_library(
-   name = "score_proto",
-   srcs = ["score.proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
 )
 
 py_proto_library(
-    name = "autofill_py_pb2",
-    srcs = ["autofill.proto"],
+    name = "generator_py_pb2",
+    srcs = ["generator.proto"],
+    default_runtime = "@protobuf//:protobuf_python",
+    protoc = "@protobuf//:protoc",
+    srcs_version = "PY2AND3",
     deps = [":music_py_pb2"],
-    srcs_version = "PY2AND3",
-    protoc = "@protobuf//:protoc",
-    default_runtime = "@protobuf//:protobuf_python",
 )
 
 cc_proto_library(
-   name = "autofill_proto",
-   srcs = ["autofill.proto"],
+    name = "generator_proto",
+    srcs = ["generator.proto"],
+    default_runtime = "@protobuf//:protobuf",
+    protoc = "@protobuf//:protoc",
     deps = [":music_proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
 )

@@ -145,7 +145,7 @@ MuseScore {
             cursor.rewind(0); // beginning of score
 
             for (; cursor.segment; cursor.next()) {
-              console.log("Cursor at tick " + cursor.tick);
+              console.log("\nCursor at tick " + cursor.tick);
               console.log("Tempo at cursor: " + cursor.tempo)
               // Extract any relevant time signatures
               while(timeSignatures.length &&
@@ -187,12 +187,12 @@ MuseScore {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
                   var scoreNote = elem.notes[i];
-                  // duration = globalDuration.ticks /
-                  //   480 (musescore ticks per quarter note) *
-                  //   tempo (seconds per quarter note)
+                  // duration (seconds) = globalDuration.ticks /
+                  //   (480 (musescore ticks per quarter note) *
+                  //    tempo (quarter notes per second))
                   // globalDuration accounts for tuplets. duration does not.
                   var durationSeconds =
-                      elem.globalDuration.ticks / 480 * cursor.tempo;
+                      elem.globalDuration.ticks / (480 * cursor.tempo);
 
                   var nsNote = {};
                   nsNote.pitch = scoreNote.ppitch;

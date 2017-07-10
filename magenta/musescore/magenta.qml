@@ -75,14 +75,7 @@ MuseScore {
         var noteSequence = {
           timeSignatures: [],
           keySignatures: [],
-          // Hard code this until the annotations bug is fixed:
-          // https://musescore.org/en/node/115971
-          tempos: [
-            // {
-            //   time: 0,
-            //   bpm: 120,
-            // }
-          ],
+          tempos: [],
           notes: [],
           totalTime: curScore.duration,
           sourceInfo: {
@@ -122,14 +115,12 @@ MuseScore {
         var prevTick = 0;
         var prevTempo = 2;  // Default to 2 (=120bpm) at start of score.
         for(var seg = curScore.firstSegment(); !!seg; seg = seg.next) {
-          console.log("Segment tick: " + seg.tick);
           for (var i = 0; i < seg.annotations.length; i++) {
             var annotation = seg.annotations[i];
             if (annotation.type === Element.TEMPO_TEXT) {
-              console.log("\n\nGOT ONE\n\n");
               var curBpm = 60 * annotation.tempo;
               var curTime = prevTime + (seg.tick - prevTick) / (480 * prevTempo);
-              console.log("BPM: " + curBpm + " Tick: " + seg.tick + " Time: " + curTime);
+              console.log("Tempo Change -- BPM: " + curBpm + " Tick: " + seg.tick + " Time: " + curTime);
               noteSequence.tempos.push(
                 {
                   time: curTime,
@@ -169,8 +160,6 @@ MuseScore {
             cursor.rewind(0); // beginning of score
 
             for (; cursor.segment; cursor.next()) {
-              console.log("\nCursor at tick " + cursor.tick);
-              console.log("Tempo at cursor: " + cursor.tempo)
               // Extract any relevant time signatures
               while(timeSignatures.length &&
                   timeSignatures[0].tick <= cursor.tick) {
@@ -206,11 +195,14 @@ MuseScore {
               }
 
               var elem = cursor.element;
-              console.log("Element: " + elem.userName() + " at time " + cursor.time);
+              console.log("Element: " + elem.userName() + " at tick " + cursor.tick +
+                          " time " + cursor.time);
               if (elem.type == Element.CHORD) {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
                   var scoreNote = elem.notes[i];
+                  console.log("Note: " + scoreNote.ppitch + " dur: " +
+                    (elem.globalDuration.ticks / 480));
                   // duration (seconds) = globalDuration.ticks /
                   //   (480 (musescore ticks per quarter note) *
                   //    tempo (quarter notes per second))

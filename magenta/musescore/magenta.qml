@@ -60,6 +60,13 @@ MuseScore {
         }
       }
 
+      function midiToNoteName(midi) {
+      var noteNames = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        var s = noteNames[midi % 12];
+        s += (Math.floor(midi / 12) - 1);
+        return s;
+      }
+
       // Returns the part # for a given midiParts dictionary and track #.
       function getPartNumber(midiParts, track) {
         for (var i in midiParts) {
@@ -201,7 +208,7 @@ MuseScore {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
                   var scoreNote = elem.notes[i];
-                  console.log("Note: " + scoreNote.ppitch + " dur: " +
+                  console.log("Note: " + midiToNoteName(scoreNote.ppitch) + " dur: " +
                     (elem.globalDuration.ticks / 480));
                   // duration (seconds) = globalDuration.ticks /
                   //   (480 (musescore ticks per quarter note) *

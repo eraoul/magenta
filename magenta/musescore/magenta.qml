@@ -61,7 +61,7 @@ MuseScore {
       }
 
       function midiToNoteName(midi) {
-      var noteNames = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        var noteNames = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
         var s = noteNames[midi % 12];
         s += (Math.floor(midi / 12) - 1);
         return s;

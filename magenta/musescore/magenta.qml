@@ -18,7 +18,7 @@ import QtQuick 2.0
 import MuseScore 1.0
 
 MuseScore {
-      version:  "1.0"
+      version:  "2.1"
       description: "This plugin connects to a Magenta server to generate music for the selected region"
       menuPath: "Plugins.Magenta"
 
@@ -86,10 +86,11 @@ MuseScore {
           notes: [],
           totalTime: curScore.duration,
           sourceInfo: {
-            sourceType: 'SCORE',
-            sourceName: 'MuseScore Plugin',
+            sourceType: 'SCORE_BASED',
+            encoding_type: 'MUSESCORE',
+            parser: 'MAGENTA_MUSESCORE',
           },
-          ticksPerBeat: 220,
+          ticks_per_quarter: 220,
           partInfos: [],
         };
 
@@ -227,6 +228,7 @@ MuseScore {
                   nsNote.part = getPartNumber(midiParts, track);
                   nsNote.instrument = midiParts[nsNote.part].midiChannel;
                   nsNote.program = midiParts[nsNote.part].midiProgram;
+                  nsNote.voice = voice;
                   noteSequence.notes.push(nsNote);
                 }
               }

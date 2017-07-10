@@ -60,11 +60,6 @@ message NoteSequence {
   // Score-related information about parts.
   repeated PartInfo part_infos = 12;
 
-<<<<<<< HEAD
-  // What kind of source this file came from.
-  SourceInfo source_info = 13;
-
-=======
   // Source-related information.
   SourceInfo source_info = 13;
 
@@ -79,7 +74,6 @@ message NoteSequence {
   SubsequenceInfo subsequence_info = 17;
 
   // Next tag: 15
->>>>>>> upstream/master
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
@@ -273,6 +267,7 @@ message NoteSequence {
       ABC = 2;
       MIDI = 3;
       MUSICNET = 4;
+      MUSESCORE = 5;
     }
 
     // Name of parser used to parse the source file.
@@ -284,6 +279,8 @@ message NoteSequence {
       MAGENTA_MUSIC_XML = 3;
       // Magenta's parser for MusicNet data.
       MAGENTA_MUSICNET = 4;
+      // Magenta's parser for MuseScore data.
+      MAGENTA_MUSESCORE = 5;
     }
   }
 
@@ -333,34 +330,5 @@ message NoteSequence {
     // Time in seconds from the end of this sequence to the end of the source
     // sequence.
     double end_time_offset = 2;
-  }
-
-  // Stores score-related information about a particular part (sometimes also
-  // called track or voice).
-  message PartInfo {
-    // The part index.
-    int32 part = 1;
-    // The name of the part. Examples: "Soprano" or "Trumpet".
-    string name = 2;
-  }
-
-  // Information about how this file was generated.
-  message SourceInfo {
-    // The type of source file used to create this NoteSequence.
-    enum SourceType {
-      UNKNOWN_SOURCE_TYPE = 0;
-      // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
-      // We can expect perfect timing alignment with measures and complete
-      // TimeSignature and KeySignature information.
-      SCORE = 1;
-    }
-
-    // Type of source.
-    SourceType source_type = 1;
-
-    // Free form name of source (e.g., magenta.lib.midi_io).
-    // Intended to be used for debugging by humans, not any sort of automated
-    // parsing.
-    string source_name = 2;
   }
 }

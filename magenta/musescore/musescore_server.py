@@ -20,7 +20,7 @@ import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
 from magenta.protobuf import autofill_pb2
-from magenta.lib import midi_io
+from magenta.music import midi_io
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('port', 8000, 'Port the server should listen on')

@@ -238,6 +238,39 @@ MuseScore {
         return noteSequence;
       }
 
+      function fillSelectionWithGeneratedNotes(notes) {
+        var cursor = curScore.newCursor();
+        var track = 0;
+        cursor.rewind(1);  // Go to start of selection.
+        if (!cursor.segment) { // no selection
+          console.error("No selection!");
+        } else {
+          track = cursor.track;
+        }
+        console.log("composing time");
+
+        // TODO: Delete any existing notes in the selected region.
+        // Otherwise this will overlay on top.
+
+        curScore.startCmd();  // Set start of undoable score changes.
+        cursor.track = track;
+        cursor.voice = 0;  // TODO: Can we select/compose into a specific voice?
+        for (var i = 0; i < notes.length; i++) {
+          var note = notes[i];
+          console.log(note['pitch']);
+
+          // TODO: Compute note start time in ticks.
+
+          // TOOD: If note is a tuplet, add required TUPLET elements to score.
+
+          // TODO: Add rests if necessary to move to cursor to start time of next note.
+
+          cursor.setDuration(1, 8);
+          cursor.addNote(note['pitch']);
+        }
+        curScore.endCmd();  // End undo region.
+      }
+
       function createFillParameter() {
         var cursor = curScore.newCursor();
         cursor.rewind(1);  // Go to start of selection.
@@ -279,11 +312,13 @@ MuseScore {
         if (typeof curScore === 'undefined') {
           Qt.quit();
         }
-        var request = new XMLHttpRequest()
+        var request = new XMLHttpRequest();
         request.onreadystatechange = function() {
             if (request.readyState == XMLHttpRequest.DONE) {
-                var response = request.responseText
-                console.log("responseText: " + response)
+                var response = request.responseText;
+                console.log("responseText: " + response);
+                var jsonResponse = JSON.parse(response);
+                fillSelectionWithGeneratedNotes(jsonResponse.notes);
                 Qt.quit()
             }
         }

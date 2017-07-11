@@ -23,6 +23,7 @@ py_binary(
     deps = [
         "//magenta/protobuf:music_py_pb2",
         "//magenta/protobuf:autofill_py_pb2",
+        "//magenta/protobuf:generator_py_pb2",
         "//magenta/music:midi_io",
         "@protobuf//:protobuf_python",
     ],

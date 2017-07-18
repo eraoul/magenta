@@ -14,13 +14,29 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-import QtQuick 2.0
+//import QtQuick 2.0
+//import QtQuick 2.1
+import QtQuick 2.2
 import MuseScore 1.0
+//import QtQuick.Controls 1.0
+import QtQuick.Controls 1.2
+
+import QtQuick.Layouts 1.0
+import QtQuick.Controls.Private 1.0
+
 
 MuseScore {
-      version:  "1.0"
-      description: "This plugin connects to a Magenta server to generate music for the selected region"
-      menuPath: "Plugins.Magenta"
+    menuPath:   "Plugins.magenta"
+    version:  "2.0"
+    description: "This plugin connects to a Magenta server to generate music for the selected region"
+
+    pluginType: "dock"
+    dockArea:   "left"
+
+    width:  150
+    height: 75
+    onRun:  console.log("hello panel");
+
 
       function keySignatureIdToMajorEnumString(id) {
         switch(id) {
@@ -251,16 +267,18 @@ MuseScore {
         };
       }
 
-      onRun: {
+      function runMain() {
         if (typeof curScore === 'undefined') {
-          Qt.quit();
+ //         Qt.quit();
+             return;
         }
         var request = new XMLHttpRequest()
         request.onreadystatechange = function() {
             if (request.readyState == XMLHttpRequest.DONE) {
                 var response = request.responseText
                 console.log("responseText: " + response)
-                Qt.quit()
+                //Qt.quit()
+                return;
             }
         }
         request.open("POST", "http://localhost:8000", true);
@@ -268,4 +286,54 @@ MuseScore {
         request.send(JSON.stringify(createAutoFillRequest()));
         console.log("sent request");
       }
+
+//    Rectangle {
+//        color: "magenta"
+//        anchors.fill: parent
+//
+//        Text {
+//            horizontalAlignment: Text.AlignHCenter
+//            verticalAlignment: Text.AlignVCenter
+//            text: "Magenta"
+//            }
+
+//        MouseArea {
+//            anchors.fill: parent
+//            onClicked: runMain()
+//            }
+//        }
+
+ GridLayout {
+        anchors.fill: parent
+        columns: 2
+        rowSpacing: 5
+
+        Rectangle {
+          color: "magenta"
+          anchors.fill: parent
+
+          Text {
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: "Magenta"
+          }
+        }
+          Image {
+              source: "magenta-logo.png" 
+             // http://magenta.tensorflow.org/assets/magenta-logo.png
+          }
+      // Text {
+      //   text: "MagentaWhite"
+      //   color: "white"
+      // }
+
+      Button {
+        text: "Generate"
+        Layout.columnSpan: 2
+        Layout.fillWidth: true
+        onClicked: {
+            runMain()
+        }
+      }
+  }
 }

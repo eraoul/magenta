@@ -27,7 +27,7 @@ import QtQuick.Controls.Private 1.0
 
 MuseScore {
     menuPath:   "Plugins.magenta"
-    version:  "2.0"
+    version:  "2.1"
     description: "This plugin connects to a Magenta server to generate music for the selected region"
 
     pluginType: "dock"
@@ -35,8 +35,7 @@ MuseScore {
 
     width:  150
     height: 75
-    onRun:  console.log("hello panel");
-
+    onRun:  console.log("hello panel"); //  + pluginPath);
 
       function keySignatureIdToMajorEnumString(id) {
         switch(id) {
@@ -76,6 +75,13 @@ MuseScore {
         }
       }
 
+      function midiToNoteName(midi) {
+        var noteNames = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        var s = noteNames[midi % 12];
+        s += (Math.floor(midi / 12) - 1);
+        return s;
+      }
+
       // Returns the part # for a given midiParts dictionary and track #.
       function getPartNumber(midiParts, track) {
         for (var i in midiParts) {
@@ -91,21 +97,15 @@ MuseScore {
         var noteSequence = {
           timeSignatures: [],
           keySignatures: [],
-          // Hard code this until the annotations bug is fixed:
-          // https://musescore.org/en/node/115971
-          tempos: [
-            {
-              time: 0,
-              bpm: 120,
-            }
-          ],
+          tempos: [],
           notes: [],
           totalTime: curScore.duration,
           sourceInfo: {
-            sourceType: 'SCORE',
-            sourceName: 'MuseScore Plugin',
+            sourceType: 'SCORE_BASED',
+            encoding_type: 'MUSESCORE',
+            parser: 'MAGENTA_MUSESCORE',
           },
-          ticksPerBeat: 220,
+          ticks_per_quarter: 220,
           partInfos: [],
         };
 
@@ -129,11 +129,32 @@ MuseScore {
               + part.midiProgram);
           }
         }
-        // Find all time signatures.
+        // Find all time signatures and tempo markings.
         // TODO: Directly insert these into noteSequence once we can calculate
         // the time from the tick: https://musescore.org/en/node/117611
         var timeSignatures = [];
+        var prevTime = 0;
+        var prevTick = 0;
+        var prevTempo = 2;  // Default to 2 (=120bpm) at start of score.
         for(var seg = curScore.firstSegment(); !!seg; seg = seg.next) {
+          for (var i = 0; i < seg.annotations.length; i++) {
+            var annotation = seg.annotations[i];
+            if (annotation.type === Element.TEMPO_TEXT) {
+              var curBpm = 60 * annotation.tempo;
+              var curTime = prevTime + (seg.tick - prevTick) / (480 * prevTempo);
+              console.log("Tempo Change -- BPM: " + curBpm + " Tick: " + seg.tick + " Time: " + curTime);
+              noteSequence.tempos.push(
+                {
+                  time: curTime,
+                  qpm: curBpm,
+                });
+              prevTime = curTime;
+              prevTick = seg.tick;
+              prevTempo = annotation.tempo
+
+            }
+          }
+
           for (var track = 0; track < curScore.ntracks; ++track) {
             var elem = seg.elementAt(track);
             if (!elem) {
@@ -161,8 +182,6 @@ MuseScore {
             cursor.rewind(0); // beginning of score
 
             for (; cursor.segment; cursor.next()) {
-              console.log("Cursor at tick " + cursor.tick);
-              console.log("Tempo at cursor: " + cursor.tempo)
               // Extract any relevant time signatures
               while(timeSignatures.length &&
                   timeSignatures[0].tick <= cursor.tick) {
@@ -198,17 +217,20 @@ MuseScore {
               }
 
               var elem = cursor.element;
-              console.log("Element: " + elem.userName() + " at time " + cursor.time);
+              console.log("Element: " + elem.userName() + " at tick " + cursor.tick +
+                          " time " + cursor.time);
               if (elem.type == Element.CHORD) {
                 // TODO: gracenotes
                 for (var i = 0; i < elem.notes.length; i++) {
                   var scoreNote = elem.notes[i];
-                  // duration = globalDuration.ticks /
-                  //   480 (musescore ticks per quarter note) *
-                  //   tempo (seconds per quarter note)
+                  console.log("Note: " + midiToNoteName(scoreNote.ppitch) + " dur: " +
+                    (elem.globalDuration.ticks / 480));
+                  // duration (seconds) = globalDuration.ticks /
+                  //   (480 (musescore ticks per quarter note) *
+                  //    tempo (quarter notes per second))
                   // globalDuration accounts for tuplets. duration does not.
                   var durationSeconds =
-                      elem.globalDuration.ticks / 480 * cursor.tempo;
+                      elem.globalDuration.ticks / (480 * cursor.tempo);
 
                   var nsNote = {};
                   nsNote.pitch = scoreNote.ppitch;
@@ -220,6 +242,7 @@ MuseScore {
                   nsNote.part = getPartNumber(midiParts, track);
                   nsNote.instrument = midiParts[nsNote.part].midiChannel;
                   nsNote.program = midiParts[nsNote.part].midiProgram;
+                  nsNote.voice = voice;
                   noteSequence.notes.push(nsNote);
                 }
               }
@@ -228,6 +251,39 @@ MuseScore {
         }
 
         return noteSequence;
+      }
+
+      function fillSelectionWithGeneratedNotes(notes) {
+        var cursor = curScore.newCursor();
+        var track = 0;
+        cursor.rewind(1);  // Go to start of selection.
+        if (!cursor.segment) { // no selection
+          console.error("No selection!");
+        } else {
+          track = cursor.track;
+        }
+        console.log("composing time");
+
+        // TODO: Delete any existing notes in the selected region.
+        // Otherwise this will overlay on top.
+
+        curScore.startCmd();  // Set start of undoable score changes.
+        cursor.track = track;
+        cursor.voice = 0;  // TODO: Can we select/compose into a specific voice?
+        for (var i = 0; i < notes.length; i++) {
+          var note = notes[i];
+          console.log(note['pitch']);
+
+          // TODO: Compute note start time in ticks.
+
+          // TOOD: If note is a tuplet, add required TUPLET elements to score.
+
+          // TODO: Add rests if necessary to move to cursor to start time of next note.
+
+          cursor.setDuration(1, 8);
+          cursor.addNote(note['pitch']);
+        }
+        curScore.endCmd();  // End undo region.
       }
 
       function createFillParameter() {
@@ -272,11 +328,13 @@ MuseScore {
  //         Qt.quit();
              return;
         }
-        var request = new XMLHttpRequest()
+        var request = new XMLHttpRequest();
         request.onreadystatechange = function() {
             if (request.readyState == XMLHttpRequest.DONE) {
-                var response = request.responseText
-                console.log("responseText: " + response)
+                var response = request.responseText;
+                console.log("responseText: " + response);
+                var jsonResponse = JSON.parse(response);
+                fillSelectionWithGeneratedNotes(jsonResponse.notes);
                 //Qt.quit()
                 return;
             }
@@ -308,19 +366,22 @@ MuseScore {
         columns: 2
         rowSpacing: 5
 
-        Rectangle {
-          color: "magenta"
-          anchors.fill: parent
+        // Rectangle {
+        //   color: "magenta"
+        //   anchors.fill: parent
 
-          Text {
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            text: "Magenta"
-          }
-        }
+        //   Text {
+        //     horizontalAlignment: Text.AlignHCenter
+        //     verticalAlignment: Text.AlignVCenter
+        //     text: "Magenta"
+        //   }
+        // }
           Image {
-              source: "magenta-logo.png" 
-             // http://magenta.tensorflow.org/assets/magenta-logo.png
+            Layout.columnSpan: 2
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Image.AlignHCenter
+            source: "file:/Users/epnichols/code/magenta/magenta/musescore/magenta-logo.png"
+              //source: "file:" + pluginPath + "/magenta-logo.png"
           }
       // Text {
       //   text: "MagentaWhite"

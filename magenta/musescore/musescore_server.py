@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# USAGE:
+#
+# bazel-bin/magenta/musescore/musescore_server --bundle_file=/Users/epnichols/code/magenta/magenta/musescore/lookback_rnn.mag
+
 r"""Webserver for interacting with MuseScore."""
 
 import BaseHTTPServer
@@ -26,6 +31,7 @@ from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 from magenta.music import midi_io
 
+import magenta.music as mm
 import magenta
 
 # from magenta.models.melody_rnn import melody_rnn_config_flags
@@ -57,18 +63,19 @@ tf.app.flags.DEFINE_integer(
 
 
 class MuseScoreHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-  def __init__(self):
-    base.__init__(self)
+  def __init__(self, *args, **kwargs):
 
     # Load the specified bundle file into a generator_pb2.GeneratorBundle.
     bundle_file = os.path.expanduser(FLAGS.bundle_file)
+    print 'Loading bundle file: ' + bundle_file
     bundle = magenta.music.read_bundle_file(bundle_file)
 
     # Get the config from the bundle.
     # TODO: Assumes melody_rnn_model.
     config_id = bundle.generator_details.id
     config = melody_rnn_model.default_configs[config_id]
-    config.hparams.parse(FLAGS.hparams)
+
+    #config.hparams.parse(FLAGS.hparams)
 
     # Make the generator.
     self.generator_ = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
@@ -77,36 +84,42 @@ class MuseScoreHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         steps_per_quarter=config.steps_per_quarter,
         bundle=bundle)
 
+    BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+
 
   # auto_fill_request is an autofill_pb2.AutoFillRequest, which contains .noteSequence and .fillParameters
   def generate_notes(self, auto_fill_request):
     # Determine the primer sequence. This can be all the notes until the start of the fill range.
     # TODO:
-    primer_sequence = None
-    if FLAGS.primer_melody:
-      primer_melody = magenta.music.Melody(ast.literal_eval(FLAGS.primer_melody))
-      primer_sequence = primer_melody.to_sequence(qpm=qpm)
-    elif primer_midi:
-      primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
-      if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
-        qpm = primer_sequence.tempos[0].qpm
+
+    # TOOD: fill_parameters is a repeated field. We assume only 1 fill region.
+    fill_parameters = auto_fill_request.fill_parameters[0]
+    primer_sequence = mm.trim_note_sequence(auto_fill_request.note_sequence,
+        fill_parameters.start_time, fill_parameters.end_time)
+    start_time = fill_parameters.start_time
+    end_time = fill_parameters.end_time
+
+
+    if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
+      qpm = primer_sequence.tempos[0].qpm
+    else:
+      qpm = 120
 
     # Derive the total number of seconds to generate based on the QPM of the
     # priming sequence and the size of the fill region.
-    seconds_per_step = 60.0 / qpm / generator.steps_per_quarter
-    total_seconds = FLAGS.num_steps * seconds_per_step
+    seconds_per_step = 60.0 / qpm / self.generator_.steps_per_quarter
+    #total_seconds = FLAGS.num_steps * seconds_per_step
+    total_seconds = end_time - start_time
 
     # Specify start/stop time for generation based on starting generation at the
     # end of the priming sequence and continuing until the sequence is num_steps
     # long.
     generator_options = generator_pb2.GeneratorOptions()
     input_sequence = primer_sequence
-    # Set the start time to begin on the next step after the last note ends.
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+
     generate_section = generator_options.generate_sections.add(
-        start_time=last_end_time + seconds_per_step,
-        end_time=total_seconds)
+        start_time=start_time,
+        end_time=end_time)
 
     generator_options.args['temperature'].float_value = FLAGS.temperature
     generator_options.args['beam_size'].int_value = FLAGS.beam_size
@@ -117,7 +130,7 @@ class MuseScoreHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     tf.logging.debug('generator_options: %s', generator_options)
 
     # Finally, generate notes! Composing happens here.
-    generated_sequence = generator.generate(input_sequence, generator_options)
+    generated_sequence = self.generator_.generate(input_sequence, generator_options)
 
     # Debug: output to MIDI file.
     magenta.music.sequence_proto_to_midi_file(generated_sequence, '/tmp/musescore_magenta_out.midi')

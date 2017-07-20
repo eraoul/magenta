@@ -21,10 +21,13 @@ py_binary(
     name = "musescore_server",
     srcs = ["musescore_server.py"],
     deps = [
+        "//magenta",
+        "//magenta/models/melody_rnn:melody_rnn_model",
+        "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
+        "//magenta/music:midi_io",
         "//magenta/protobuf:music_py_pb2",
         "//magenta/protobuf:autofill_py_pb2",
         "//magenta/protobuf:generator_py_pb2",
-        "//magenta/music:midi_io",
         "@protobuf//:protobuf_python",
     ],
 )

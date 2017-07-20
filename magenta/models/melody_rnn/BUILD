@@ -49,6 +49,7 @@ py_library(
     visibility = [
         # internal model:melody_rnn
         # internal notebook binary
+        "//magenta/musescore:__subpackages__",
     ],
     deps = [
         "//magenta",
@@ -62,7 +63,8 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
-        "//magenta/interfaces:generator_interfaces"
+        "//magenta/interfaces:generator_interfaces",
+        "//magenta/musescore:__subpackages__",
     ],
     deps = [
         ":melody_rnn_model",
@@ -116,6 +118,7 @@ py_binary(
     srcs = ["melody_rnn_generate.py"],
     srcs_version = "PY2AND3",
     visibility = [
+        "//magenta/musescore:__subpackages__",
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [

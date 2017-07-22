@@ -253,6 +253,57 @@ MuseScore {
         return noteSequence;
       }
 
+      // Set the given cursor duraction based on a a nubmer of seconds.
+      // TODO: handle tempo changes during rest. Ignore for now; assume
+      // tempo is constant from cursor start point until end of rest.
+      function setCursorDurationSeconds(cursor, durationSec) {
+        var tempoMultiplierVsSixty = cursor.tempo;
+        // Quantize to 64th notes.  TODO: improve this, handle triplets.
+        var sixtyFourthNotesPerSec = 16.0 * tempoMultiplierVsSixty;
+        var numSixtyFourths = durationSec * sixtyFourthNotesPerSec;
+        console.log("num64ths: " + numSixtyFourths);
+        cursor.setDuration(numSixtyFourths, 64);
+      }
+
+      // Using the given cursor, add a rest of the specified duration.
+      // This is nontrivial if there are indicated tempo changes in the
+      // region spanned by the rest.
+      function addRestAtCursor(cursor, durationSec) {
+        console.log("Creating rest of duration: " + durationSec)
+
+        // The only way to add a rest currently in MuseScore is to add a note of the
+        // desired duration and then to change it into a rest.
+
+        // Save the cursor position.
+        var position = cursor.tick;
+
+        // Add a placeholder note.
+        setCursorDurationSeconds(cursor, durationSec);
+        cursor.addNote(0);
+
+        // Rewind to the start of the selection and find where we were again.
+        cursor.rewind(0);
+        while (cursor.tick < position) {
+          cursor.next();
+        }
+
+        var rest = newElement(Element.REST);
+        rest.durationType = cursor.element.durationType;
+        cursor.add(rest);
+        cursor.next();
+      }
+
+      // Using the given cursor, add a note of the specified duration and pitch.
+      // This is nontrivial if there are indicated tempo changes in the
+      // region spanned by the rest. Also, the spelling of the pitch is
+      // not well-specified with just the MIDI note number.
+      // TODO: improve pitch spelling.
+      function addNoteAtCursor(cursor, midiPitch, durationSec) {
+        console.log("Creating note " + midiPitch + " of duration: " + durationSec);
+        setCursorDurationSeconds(cursor, durationSec);
+        cursor.addNote(midiPitch);
+      }
+
       function fillSelectionWithGeneratedNotes(notes) {
         var cursor = curScore.newCursor();
         var track = 0;
@@ -273,15 +324,21 @@ MuseScore {
         for (var i = 0; i < notes.length; i++) {
           var note = notes[i];
           console.log(note['pitch']);
+          var curTime = cursor.time / 1000.0
+          console.log("time:" + curTime)
+          // Add rests if necessary to move to cursor to start time of next note.
+          if (Math.abs(curTime - note.startTime) > 0.01) {
+            // Too much time until next note. Create a rest.
+            addRestAtCursor(cursor, note.startTime - curTime);
+          }
 
           // TODO: Compute note start time in ticks.
 
           // TOOD: If note is a tuplet, add required TUPLET elements to score.
 
-          // TODO: Add rests if necessary to move to cursor to start time of next note.
-
-          cursor.setDuration(1, 8);
-          cursor.addNote(note['pitch']);
+          addNoteAtCursor(cursor, note['pitch'], note.endTime - note.startTime)
+          //cursor.setDuration(1, 8);
+          //cursor.addNote(note['pitch']);
         }
         curScore.endCmd();  // End undo region.
       }

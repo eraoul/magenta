@@ -253,7 +253,7 @@ MuseScore {
         return noteSequence;
       }
 
-      // Set the given cursor duraction based on a a nubmer of seconds.
+      // Set the given cursor duration based on a a number of seconds.
       // TODO: handle tempo changes during rest. Ignore for now; assume
       // tempo is constant from cursor start point until end of rest.
       function setCursorDurationSeconds(cursor, durationSec) {
@@ -266,8 +266,6 @@ MuseScore {
       }
 
       // Using the given cursor, add a rest of the specified duration.
-      // This is nontrivial if there are indicated tempo changes in the
-      // region spanned by the rest.
       function addRestAtCursor(cursor, durationSec) {
         console.log("Creating rest of duration: " + durationSec)
 

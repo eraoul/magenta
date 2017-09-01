@@ -37,6 +37,8 @@ import magenta
 # from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.melody_rnn import melody_rnn_model
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.models.polyphony_rnn import polyphony_rnn_model
+from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
 
 
@@ -78,6 +80,11 @@ class MuseScoreHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     #config.hparams.parse(FLAGS.hparams)
 
     # Make the generator.
+    # self.generator_ = polyphony_rnn_sequence_generator.PolyphonyRnnSequenceGenerator(
+    #     model=mpolyphony_rnn_model.PolyphonyRnnModel(config),
+    #     details=config.details,
+    #     steps_per_quarter=config.steps_per_quarter,
+    #     bundle=bundle)
     self.generator_ = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
         model=melody_rnn_model.MelodyRnnModel(config),
         details=config.details,
